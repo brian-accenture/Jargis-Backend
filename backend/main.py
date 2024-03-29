@@ -1,3 +1,5 @@
+from __future__ import annotations
+from typing import Any
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
 import yaml
@@ -5,6 +7,7 @@ import time
 import openai
 import fn_call_utils 
 import os
+from bson.objectid import ObjectId
 
 with open("C:/Workspace/Jargis/Jargis-Backend/backend/config.yaml", "r") as f:
     config = yaml.load(f, Loader=yaml.FullLoader)
@@ -22,8 +25,36 @@ except Exception as e:
 print(client.list_database_names())
 db = client["Jargis"]
 terms = db["terms"]
+categories = db["categories"]
 
-def insert_term(new_term):
+def get_categoryID(category:str) -> str | None:
+    x = categories.find_one(filter={'name':category.lower()})
+    try:
+        return x['_id']
+    except TypeError:
+        return None
+
+def add_term(term: str, definition: str, categories: list[str] = ['all'], verfication: str = "unverified") -> int:
+    category_list = []
+    for c in categories:
+        cid = get_categoryID(c)
+        if cid:
+            category_list.append(cid)
+        else:
+            print('Could not find category. Use add_category() to create a new category')
+
+    if category_list is None:
+        category_list.append(get_categoryID)
+
+    new_term = {'term': term,
+                'definitions': [{'_id': ObjectId(), 
+                                'definition': definition,
+                                'categories': category_list,  # type: ignore
+                                'flagged': False, 
+                                'verification': verfication,
+                                'alternate_defintions': []}],
+                'search_count': 0
+                }
     x = terms.insert_one(new_term)
     return x.inserted_id
 
@@ -31,9 +62,11 @@ def get_term(query):
     documents = terms.find(query)
     return documents
 
-def update_description():
+def update_definition():
     return
 
+def add_definition():
+    pass
 
 
 
@@ -41,5 +74,8 @@ def update_description():
 if __name__ == '__main__':
     docs = get_term({'term': 'DTE'})
     for d in docs:
-        print(d)
-    print(os.environ.get('OPENAI_API_KEY'))
+        print(d["_id"])
+    print(categories.find_one({'name':'Technology'}))
+    print(get_categoryID('Technolo'))
+
+    # print(os.environ.get('OPENAI_API_KEY'))
