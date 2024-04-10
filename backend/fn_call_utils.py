@@ -66,7 +66,7 @@ def simple_message_loop(messages: list, tools: list, fn_dict: dict) -> list:
     """
 
     response = openai.chat.completions.create(
-        model="gpt-3.5-turbo-1106",
+        model="gpt-3.5-turbo",
         messages=messages,
         tools=tools,
         tool_choice="auto",
